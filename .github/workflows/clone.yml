@@ -24,6 +24,7 @@ jobs:
             https://api.github.com/repos/${{ github.repository }}/traffic/clones \
             > clone.json
             gist_data=$(jq . clone.json)
+            echo "DATA=$gist_data" >> $GITHUB_ENV
             
 
       - name: create gist and download previous count
