@@ -23,7 +23,7 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/traffic/clones \
             > clone.json
-            gist_data=${{ fromJSON(clone.json) }}
+            gist_data=$(jq . clone.json)
             echo "DATA=$gist_data" >> $GITHUB_OUTPUT
             
 
@@ -77,39 +77,9 @@ jobs:
           if ! diff -q "clone.json" "clone_before.json" >/dev/null
           then
             content=$(sed -e 's/\\/\\\\/g' -e 's/\t/\\t/g' -e 's/\"/\\"/g' -e 's/\r//g' "clone.json" | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')
-            echo '{"description": "Clone statistics: https://github.com/${{ github.repository }} ${{ steps.set_gist.DATA[steps.set_gist.DATA.lenth-1] }}", "files": {"clone.json": {"content": "'"$content"'"}}}' > post_clone.json
+            echo '{"description": "Clone statistics: https://github.com/${{ github.repository }} ${{ steps.set_gist.DATA[steps.set_gist.DATA.length-1] }}", "files": {"clone.json": {"content": "'"$content"'"}}}' > post_clone.json
             curl -s -X PATCH \
               --user "${{ github.actor }}:${{ secrets.SECRET_TOKEN }}" \
               -H "Content-Type: application/json" \
               -d @post_clone.json https://api.github.com/gists/${{ steps.set_id.outputs.GIST }} > /dev/null 2>&1
             fi
-
-      - name: Add badge comments
-        run: |
-          if [ "${{ steps.set_id.outputs.COMMENT }}" == "not_found" ]; then
-            shields="https://img.shields.io/badge/dynamic/json?color=success&label=Clone&query=count&url="
-            url="https://gist.githubusercontent.com/${{ github.actor }}/${{ steps.set_id.outputs.GIST }}/raw/clone.json"
-            repo="https://github.com/MShawon/github-clone-count-badge"
-            echo ''> BADGE.md
-            echo '
-            **Markdown**
-
-            ```markdown' >> BADGE.md
-            echo "[![GitHub Clones]($shields$url&logo=github)]($repo)" >> BADGE.md
-            echo '
-            ```
-
-            **HTML**
-            ```html' >> BADGE.md
-            echo "<a href='$repo'><img alt='GitHub Clones' src='$shields$url&logo=github'></a>" >> BADGE.md
-            echo '```' >> BADGE.md
-
-            body=$(sed -e 's/\\/\\\\/g' -e 's/\t/\\t/g' -e 's/\"/\\"/g' -e 's/\r//g' "BADGE.md" | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')
-            echo '{"body": "'"$body"'"}' > post_comment.json
-            comment_id=$(curl -s -X POST \
-            --user "${{ github.actor }}:${{ secrets.SECRET_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d @post_comment.json https://api.github.com/gists/${{ steps.set_id.outputs.GIST }}/comments \
-            | jq '.id')
-            echo $comment_id | gh secret set GIST_COMMENT_ID
-          fi
