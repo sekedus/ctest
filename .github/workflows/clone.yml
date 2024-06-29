@@ -73,7 +73,7 @@ jobs:
 
       - name: Update gist with latest count
         run: |
-          echo 'data: ${{ steps.set_gist.outputs.DATA }}'
+          echo 'data: ${{ steps.set_gist.outputs.DATA.timestamp }}'
           if ! diff -q "clone.json" "clone_before.json" >/dev/null
           then
             content=$(sed -e 's/\\/\\\\/g' -e 's/\t/\\t/g' -e 's/\"/\\"/g' -e 's/\r//g' "clone.json" | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')
