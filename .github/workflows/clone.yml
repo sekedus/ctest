@@ -71,7 +71,7 @@ jobs:
       - name: Limit JSON array to only last 2 values
         run: |
           updated_gist=$(jq '.clones |= .[-2:]' clone.json)
-          echo $updated_gist > clone.json
+          echo $updated_gist | jq '.' > clone.json
 
       - name: Update gist with latest count
         run: |
