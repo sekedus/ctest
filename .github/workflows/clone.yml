@@ -17,14 +17,11 @@ jobs:
         run: echo "${{ secrets.SECRET_TOKEN }}" | gh auth login --with-token
 
       - name: parse latest clone count
-        id: set_gist
         run: |
           curl --user "${{ github.actor }}:${{ secrets.SECRET_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/traffic/clones \
             > clone.json
-            gist_data=$(jq -c '.clones | .[length-1]' clone.json)
-            echo "DATA=$gist_data" >> $GITHUB_OUTPUT
 
       - name: create gist and download previous count
         id: set_id
@@ -71,13 +68,17 @@ jobs:
           curl https://raw.githubusercontent.com/MShawon/github-clone-count-badge/master/main.py > main.py
           python3 main.py
 
+      - name: Limit JSON array to only last 2 values
+        run: |
+          updated_gist=$(jq '.clones |= .[-2:]' clone.json)
+          echo $updated_gist > clone.json
+
       - name: Update gist with latest count
         run: |
-          echo 'data: ${{ steps.set_gist.outputs.DATA.timestamp }}'
           if ! diff -q "clone.json" "clone_before.json" >/dev/null
           then
             content=$(sed -e 's/\\/\\\\/g' -e 's/\t/\\t/g' -e 's/\"/\\"/g' -e 's/\r//g' "clone.json" | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')
-            echo '{"description": "Clone statistics: https://github.com/${{ github.repository }} | ${{ steps.set_gist.outputs.DATA.timestamp }}", "files": {"clone.json": {"content": "'"$content"'"}}}' > post_clone.json
+            echo '{"description": "Clone statistics: https://github.com/${{ github.repository }}", "files": {"clone.json": {"content": "'"$content"'"}}}' > post_clone.json
             curl -s -X PATCH \
               --user "${{ github.actor }}:${{ secrets.SECRET_TOKEN }}" \
               -H "Content-Type: application/json" \
