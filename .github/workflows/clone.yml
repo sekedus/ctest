@@ -68,9 +68,9 @@ jobs:
           curl https://raw.githubusercontent.com/MShawon/github-clone-count-badge/master/main.py > main.py
           python3 main.py
 
-      - name: Limit JSON array to only last 2 values
+      - name: Limit JSON array to only last 4 values
         run: |
-          updated_gist=$(jq '.clones |= .[-2:]' clone.json)
+          updated_gist=$(jq '.clones |= .[-4:]' clone.json)
           echo $updated_gist | jq '.' > clone.json
 
       - name: Update gist with latest count
